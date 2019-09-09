@@ -27,6 +27,11 @@
   "devDependencies": {
     "commander": "^3.0.1",
     "download-git-repo": "^2.0.0",
-    "glob": "^7.1.4"
+    "glob": "^7.1.4",
+    "handlebars": "^4.2.0",
+    "inquirer": "^7.0.0",
+    "latest-version": "^5.1.0",
+    "metalsmith": "^2.3.0",
+    "rimraf": "^3.0.0"
   }
 }

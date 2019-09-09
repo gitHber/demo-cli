@@ -4,6 +4,7 @@ const fs = require("fs");
 const glob = require("glob");
 const inquirer = require("inquirer");
 const download = require("../lib/download");
+const latestVersion = require("latest-version");
 
 program.usage("<project-name>").parse(process.argv);
 
@@ -55,17 +56,58 @@ if (list.length) {
 next && go();
 
 function go() {
-  next.then(projectRoot => {
-    if (projectRoot !== ".") {
-      fs.mkdirSync(projectRoot);
-    }
-    return download(projectRoot)
-      .then(target => {
+  next
+    .then(projectRoot => {
+      if (projectRoot !== ".") {
+        fs.mkdirSync(projectRoot);
+      }
+      return download(projectRoot).then(target => {
         return {
-          projectRoot,
+          name: projectRoot,
+          root: projectRoot,
           downloadTemp: target
         };
-      })
-      .catch(err => console.log(err));
-  });
+      });
+    })
+    .then(context => {
+      return inquirer
+        .prompt([
+          {
+            name: "projectName",
+            message: "项目的名称",
+            default: context.name
+          },
+          {
+            name: "projectVersion",
+            message: "项目的版本号",
+            default: "1.0.0"
+          },
+          {
+            name: "projectDescription",
+            message: "项目的简介",
+            default: `A project named ${context.name}`
+          }
+        ])
+        .then(answers => {
+          return latestVersion("macaw-ui")
+            .then(version => {
+              answers.supportUiVersion = version;
+              return {
+                ...context,
+                metadata: {
+                  ...answers
+                }
+              };
+            })
+            .catch(err => {
+              return Promise.reject(err);
+            });
+        });
+    })
+    .then(context => {
+      console.log(context);
+    })
+    .catch(err => {
+      console.error(err);
+    });
 }
