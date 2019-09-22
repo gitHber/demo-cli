@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const program = require("commander");
 const path = require("path");
 const fs = require("fs");
@@ -5,6 +7,10 @@ const glob = require("glob");
 const inquirer = require("inquirer");
 const download = require("../lib/download");
 const latestVersion = require("latest-version");
+const generator = require("../lib/generator"); // 模板插入
+const chalk = require("chalk");
+const logSymbols = require("log-symbols");
+const ora = require("ora");
 
 program.usage("<project-name>").parse(process.argv);
 
@@ -12,13 +18,15 @@ program.usage("<project-name>").parse(process.argv);
 let projectName = program.args[0];
 
 if (!projectName) {
+  // 相当于 --help选项
   program.help();
   return;
 }
 
-const list = glob.sync("*");
+const list = glob.sync("*"); // 遍历当前目录
 
 let next = undefined;
+// 当前目录名称
 let rootName = path.basename(process.cwd());
 
 if (list.length) {
@@ -26,7 +34,7 @@ if (list.length) {
   if (
     // 当前目录下有没有同名目录
     list.filter(name => {
-      const fileName = path.resolve(process.cwd(), path.join(".", name));
+      const fileName = path.resolve(process.cwd(), name);
       const isDir = fs.statSync(fileName).isDirectory();
       return name === projectName && isDir;
     }).length !== 0
@@ -54,10 +62,11 @@ if (list.length) {
 }
 
 next && go();
-
+// 下载处理函数
 function go() {
   next
     .then(projectRoot => {
+      console.log(chalk.white("\n Start generating... \n"));
       if (projectRoot !== ".") {
         fs.mkdirSync(projectRoot);
       }
@@ -105,9 +114,25 @@ function go() {
         });
     })
     .then(context => {
-      console.log(context);
+      const spinner = ora(
+        `Creating project in ${path.resolve(process.cwd(), context.root)}`
+      );
+      console.log('xx')
+      spinner.start();
+      return generator(context.metadata, context.downloadTemp)
+        .then(res => {
+          spinner.succeed();
+          console.log(chalk.green("\n Generation completed!"));
+        })
+        .catch(err => {
+          spinner.fail();
+          return Promise.reject(err);
+        });
+    })
+    .then(context => {
+      console.log(logSymbols.success, chalk.green("创建成功:)"));
     })
     .catch(err => {
-      console.error(err);
+      console.error(logSymbols.error, chalk.red("创建失败"));
     });
 }

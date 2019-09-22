@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 // 创建demo 项目的代码
 const program = require("commander");
 
